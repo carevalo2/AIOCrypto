@@ -22,5 +22,3 @@ AIOCrypto is a Discord bot written in Python using `discord.py` that enables use
 - Improve database management with enhanced transaction tracking and logging.
 
 ---
-
-This format gives clear sections for features, technologies, and future plans. It provides readers with a quick overview of the bot’s purpose, structure, and key components. Let me know if you’d like to add or adjust anything else!
