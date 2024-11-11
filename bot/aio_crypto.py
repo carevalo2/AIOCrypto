@@ -1,13 +1,15 @@
 import discord
 import os
 from discord.ext import commands
+from pathlib import Path
 from discord.ext.commands import ExtensionNotFound, NoEntryPointError, ExtensionFailed
 from dotenv import load_dotenv
 
-load_dotenv()
-
+dotenv_path = Path('AIOCrypto/.env')
+load_dotenv(dotenv_path)
 
 class AIOCrypto(commands.Bot):
+
 
     def __init__(self, *args, **kwargs):
         intents = discord.Intents.default()
