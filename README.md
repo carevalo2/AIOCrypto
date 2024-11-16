@@ -1,6 +1,6 @@
 # AIOCrypto
 
-AIOCrypto is a Discord bot written in Python using `discord.py` that enables users to fetch real-time cryptocurrency prices and (soon) track transactions. The bot currently supports **Bitcoin**, **Ethereum**, and **Litecoin**.
+A Discord bot written in Python using `discord.py` that enables users to fetch real-time cryptocurrency prices and (soon) track transactions. The bot currently supports **Bitcoin**, **Ethereum**, and **Litecoin**.
 
 ## Features
 
