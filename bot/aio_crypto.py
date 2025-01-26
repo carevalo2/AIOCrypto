@@ -15,7 +15,7 @@ class AIOCrypto(commands.Bot):
         intents = discord.Intents.default()
         intents.members = True
         intents.message_content = True
-        command_prefix = os.getenv('COMMAND_PREFIX')
+        command_prefix = '-'
 
         super().__init__(
             command_prefix=command_prefix,
