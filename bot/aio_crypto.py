@@ -1,17 +1,11 @@
 import discord
 import os
 from discord.ext import commands
-from pathlib import Path
 from discord.ext.commands import ExtensionNotFound, NoEntryPointError, ExtensionFailed
-from dotenv import load_dotenv
-
-dotenv_path = Path('AIOCrypto/.env')
-load_dotenv(dotenv_path)
 
 class AIOCrypto(commands.Bot):
 
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, db_pool, config, *args, **kwargs):
         intents = discord.Intents.default()
         intents.members = True
         intents.message_content = True
@@ -23,7 +17,9 @@ class AIOCrypto(commands.Bot):
             *args,
             **kwargs
         )
-        self.db = None
+
+        self.db = db_pool
+        self.__config = config
 
     async def load_cogs(self):
         for filename in os.listdir('./cogs'):
@@ -49,6 +45,6 @@ class AIOCrypto(commands.Bot):
         print(f"{self.user} is logged in.")
 
     async def run(self):
-        await self.start(os.getenv('DISCORD_TOKEN'))
+        await self.start(self.__config['bot_token'])
 
 
