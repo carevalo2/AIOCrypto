@@ -1,49 +1,57 @@
-from logging import Formatter
-
 from discord import Interaction
 from discord.ext import commands
 from discord.app_commands import command as slash_command, Choice, choices, describe
-from AIOCrypto.controllers.coin_controller import CoinController
-from AIOCrypto.models.coin_model import CoinModel
-from AIOCrypto.services.formatter_service import FormatterService
-from AIOCrypto.views.coin_view import CoinView
-import traceback
 
+from services.formatter_service import FormatterService
+
+from bot.mvc.controllers.coin_controller import CoinController
+from bot.mvc.models.coin_model import CoinModel
+from bot.mvc.views.coin_view import CoinView
 
 class Coin(commands.Cog):
 
-    cache: dict[CoinController] = {}
+    controller_cache: dict[str] = {}
+
+    coin_tickers: dict[str] = {
+        'Bitcoin': 'BTC',
+        'Ethereum': 'ETH',
+        'Litecoin': 'LTC'
+    }
 
     def __init__(self, bot):
         self.bot = bot
 
     @slash_command(name="price", description="Get the current price in USD of BTC, ETH, or LTC.")
-    @describe(coin="Select a supported cryptocurrency.")
+    @describe(coin="Defaults to Bitcoin.")
     @choices(coin=[
-        Choice(name='Bitcoin', value='Bitcoin (BTC)'),
-        Choice(name='Ethereum', value='Ethereum (ETH)'),
-        Choice(name='Litecoin', value='Litecoin (LTC)')
+        Choice(name='Bitcoin', value='Bitcoin'),
+        Choice(name='Ethereum', value='Ethereum'),
+        Choice(name='Litecoin', value='Litecoin')
     ])
-    async def price(self, interaction: Interaction, coin: Choice[str]) -> None:
+    async def price(self, interaction: Interaction, coin: Choice[str] = None) -> None:
         await interaction.response.defer()
-        name, symbol = coin.value.split("(", 1)
-        name: str = name.strip()
-        symbol: str = symbol.strip(")").strip()
-        controller: CoinController = self.cache.get(name)
-        if controller:
-            price_embed = await controller.get_price_embed()
-            return await interaction.followup.send(embed=price_embed)
+
+        if not coin:
+            coin_name = "Bitcoin"
+            coin_ticker = "BTC"
         else:
-            try:
-                model: CoinModel = CoinModel(name, symbol)
-                view: CoinView = CoinView(model, FormatterService())
-                controller: CoinController = CoinController(model, view)
-                if self.cache.get(name) is None:
-                    self.cache[name] = controller
-                price_embed = await controller.get_price_embed()
-                await interaction.followup.send(embed=price_embed)
-            except Exception as e:
-                print(traceback.format_exc())
+            coin_name: str = coin.value
+            coin_ticker: str = self.coin_tickers[coin_name]
+
+        try:
+            controller: CoinController = self.controller_cache[coin_name]
+            price_embed, file = await controller.get_price_embed()
+            await interaction.followup.send(embed=price_embed, file=file)
+        except KeyError:
+            model: CoinModel = CoinModel(coin_name, coin_ticker)
+            view : CoinView = CoinView(model, formatter=FormatterService())
+            controller: CoinController = CoinController(model, view)
+
+            self.controller_cache[coin_name] = controller
+
+            price_embed, file = await controller.get_price_embed()
+
+            await interaction.followup.send(embed=price_embed, file=file)
 
 
 async def setup(bot):
