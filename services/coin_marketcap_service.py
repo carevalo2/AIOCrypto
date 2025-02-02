@@ -1,55 +1,56 @@
 import time
-import os
-from aiohttp import ClientSession, ClientTimeout, ClientError
-from AIOCrypto.models.coin_model import CoinModel
-from asyncio import TimeoutError
-from decimal import Decimal
-from dotenv import load_dotenv
 import logging
 
-load_dotenv()
+from aiohttp import ClientSession, ClientTimeout, ClientError
+from bot.mvc.models.coin_model import CoinModel
+from config.config import load_config
+from asyncio import TimeoutError
+from decimal import Decimal
 
 class CoinMarketCapService:
 
+    config = load_config()
+
     UPDATE_INTERVAL_SECONDS: float = 30
-    SESSION = None
     CLIENT_TIMEOUT_SECONDS: float = 10
+
     URL = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
+
     HEADERS = {
         'Accepts': 'application/json',
-        'X-CMC_PRO_API_KEY': os.getenv('X-CMC_PRO_API_KEY'),
+        'X-CMC_PRO_API_KEY': config['coinmarketcap_api_key'],
     }
+
+    SESSION = ClientSession(
+        headers=HEADERS, timeout=ClientTimeout(total=CLIENT_TIMEOUT_SECONDS)
+    )
 
     def __init__(self, coin: CoinModel):
         self.coin = coin
-        if not CoinMarketCapService.session:
-            CoinMarketCapService.session = ClientSession(
-                headers=self.HEADERS, timeout=ClientTimeout(total=CoinMarketCapService.CLIENT_TIMEOUT_SECONDS)
-            )
 
-    async def get_price(self) -> Decimal:
-        current_time = int(time.time())
-        if self.is_price_outdated(current_time):
-            await self._update_price(current_time)
-        return self.coin.price
+    async def get_price(self) -> Decimal | None:
 
-    async def _update_price(self, current_time: int) -> Decimal:
+        if not self.is_price_outdated(int(time.time())):
+            return self.coin.price
+
         parameters = {
             'symbol': self.coin.symbol,
             'convert': 'USD'
         }
+
         try:
             async with CoinMarketCapService.SESSION.get(self.URL, params=parameters) as response:
                 data = await response.json()
                 new_price = Decimal(data['data'][self.coin.symbol]['quote']['USD']['price'])
-                self.update_price(new_price, current_time)
+                self.update_price(new_price)
                 return new_price
         except (ClientError, TimeoutError) as e:
             logging.error(f"Error fetching price: {e}")
-            return Decimal(0)
+            return None
 
-    def update_price(self, new_price: Decimal, current_time: int) -> None:
-        self.coin = new_price
+    def update_price(self, new_price) -> None:
+        current_time = int(time.time())
+        self.coin.price = new_price
         self.coin.last_updated = current_time
 
     def is_price_outdated(self, current_time: int) -> bool:
